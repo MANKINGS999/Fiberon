@@ -42,11 +42,8 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-black uppercase tracking-tight">
-                HFT INFRASTRUCTURE
+                FIBERON
               </h1>
-              <p className="text-sm font-mono text-muted-foreground mt-2">
-                High-Frequency Trading Data Center Monitoring
-              </p>
             </div>
             <div className="flex items-center gap-4">
               <div className="brutal-border bg-card px-6 py-3">

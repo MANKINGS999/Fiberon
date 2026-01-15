@@ -45,7 +45,7 @@ export default function Landing() {
           >
             <div className="brutal-border inline-block bg-primary px-4 py-2 mb-6">
               <span className="font-black text-sm uppercase tracking-wide text-primary-foreground">
-                HFT INFRASTRUCTURE MONITORING
+                FIBERON
               </span>
             </div>
             <h1 className="text-6xl md:text-7xl font-black uppercase mb-6 leading-tight bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
