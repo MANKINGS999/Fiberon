@@ -399,9 +399,13 @@ export default function Dashboard() {
                 {riskSummary?.map((zone, idx) => (
                   <tr
                     key={zone.zoneId}
-                    className={`border-b border-border hover:bg-muted/30 cursor-pointer transition-colors ${
-                      selectedZone === zone.zoneId ? 'bg-primary/5' : ''
-                    }`}
+                    className={`cursor-pointer transition-colors ${
+                      zone.riskLevel === "High"
+                        ? 'border-b-2 border-l-4 border-b-border border-l-destructive bg-destructive/5 hover:bg-destructive/10'
+                        : zone.riskLevel === "Medium"
+                          ? 'border-b-2 border-l-4 border-b-border border-l-accent bg-accent/5 hover:bg-accent/10'
+                          : 'border-b-2 border-l-4 border-b-border border-l-primary bg-primary/5 hover:bg-primary/10'
+                    } ${selectedZone === zone.zoneId ? 'ring-2 ring-inset ring-foreground/20' : ''}`}
                     onClick={() => setSelectedZone(zone.zoneId)}
                   >
                     <td className="p-3 font-mono font-semibold">{zone.zoneId}</td>

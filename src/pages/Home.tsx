@@ -114,7 +114,13 @@ export default function Home() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => navigate(`/dashboard?zone=${zone.zoneId}`)}
-                className={`brutal-card cursor-pointer bg-card p-6 hover:scale-[1.02] transition-all ${getRiskBgColor(zone.riskLevel)}`}
+                className={`cursor-pointer bg-card p-6 hover:scale-[1.02] transition-all border-2 rounded ${
+                  zone.riskLevel === "High"
+                    ? 'border-destructive bg-destructive/5 hover:bg-destructive/10'
+                    : zone.riskLevel === "Medium"
+                      ? 'border-accent bg-accent/5 hover:bg-accent/10'
+                      : 'border-primary bg-primary/5 hover:bg-primary/10'
+                } ${getRiskBgColor(zone.riskLevel)}`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
