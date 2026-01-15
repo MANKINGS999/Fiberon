@@ -8,6 +8,30 @@ export default function Home() {
   const riskSummary = useQuery(api.hftMonitoring.getRiskSummary);
   const navigate = useNavigate();
 
+  // Show loading state
+  if (riskSummary === undefined) {
+    return (
+      <div className="min-h-screen bg-background dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-mono text-muted-foreground mb-4">Loading...</div>
+          <div className="text-sm text-muted-foreground">Fetching infrastructure data</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!riskSummary || riskSummary.length === 0) {
+    return (
+      <div className="min-h-screen bg-background dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-mono text-destructive mb-4">No Data Available</div>
+          <div className="text-sm text-muted-foreground">Database is empty. Please seed data.</div>
+        </div>
+      </div>
+    );
+  }
+
   const getRiskColor = (level: string) => {
     switch (level) {
       case "High":
