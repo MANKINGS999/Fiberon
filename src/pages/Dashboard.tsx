@@ -170,31 +170,10 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [isLiveMode, selectedZone, baseline, addLatencyData]);
 
+  // Helper function - must be defined before memoized values that use it
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  };
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case "High":
-        return "text-destructive";
-      case "Medium":
-        return "text-accent";
-      default:
-        return "text-primary";
-    }
-  };
-
-  const getRiskBg = (level: string) => {
-    switch (level) {
-      case "High":
-        return "bg-destructive/10 border-destructive";
-      case "Medium":
-        return "bg-accent/10 border-accent";
-      default:
-        return "bg-primary/10 border-primary";
-    }
   };
 
   // Merge database data with live buffer for seamless real-time updates
@@ -352,6 +331,29 @@ export default function Dashboard() {
 
     setAnomalyEvents(detectedAnomalies);
   }, [mergedData, baseline, selectedZone]);
+
+  // Helper functions for rendering
+  const getRiskColor = (level: string) => {
+    switch (level) {
+      case "High":
+        return "text-destructive";
+      case "Medium":
+        return "text-accent";
+      default:
+        return "text-primary";
+    }
+  };
+
+  const getRiskBg = (level: string) => {
+    switch (level) {
+      case "High":
+        return "bg-destructive/10 border-destructive";
+      case "Medium":
+        return "bg-accent/10 border-accent";
+      default:
+        return "bg-primary/10 border-primary";
+    }
+  };
 
   // Show loading state
   if (zones === undefined || riskSummary === undefined) {
