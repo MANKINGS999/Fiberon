@@ -14,6 +14,7 @@ const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Home = lazy(() => import("./pages/Home.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -61,8 +62,9 @@ createRoot(document.getElementById("root")!).render(
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/landing" element={<Landing />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/home" element={<Home />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth" element={<AuthPage redirectAfterAuth="/" />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

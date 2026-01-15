@@ -2,7 +2,8 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, Thermometer, Radio } from "lucide-react";
+import { Activity, AlertTriangle, Thermometer, Radio, ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   LineChart,
   Line,
@@ -18,6 +19,8 @@ import {
 } from "recharts";
 
 export default function Dashboard() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const riskSummary = useQuery(api.hftMonitoring.getRiskSummary);
   const zones = useQuery(api.hftMonitoring.getZones);
@@ -31,10 +34,13 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    if (zones && zones.length > 0 && !selectedZone) {
+    const zoneParam = searchParams.get("zone");
+    if (zoneParam) {
+      setSelectedZone(zoneParam);
+    } else if (zones && zones.length > 0 && !selectedZone) {
       setSelectedZone(zones[0].zoneId);
     }
-  }, [zones, selectedZone]);
+  }, [zones, selectedZone, searchParams]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -70,13 +76,21 @@ export default function Dashboard() {
       >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-tight">
-                HFT LATENCY MONITOR
-              </h1>
-              <p className="text-sm font-mono text-muted-foreground mt-1">
-                Real-time infrastructure risk detection
-              </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/home")}
+                className="brutal-button bg-background px-4 py-2 hover:bg-muted"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-tight">
+                  HFT LATENCY MONITOR
+                </h1>
+                <p className="text-sm font-mono text-muted-foreground mt-1">
+                  Real-time infrastructure risk detection
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="brutal-border bg-card px-4 py-2">
