@@ -260,33 +260,6 @@ export default function Dashboard() {
   const riskStatus = riskScore < 8 ? 'Stable' : riskScore < 15 ? 'Stress Building' : 'High Risk';
   const riskStatusColor = riskScore < 8 ? 'text-primary' : riskScore < 15 ? 'text-accent' : 'text-destructive';
 
-  // Show loading state
-  if (zones === undefined || riskSummary === undefined) {
-    return (
-      <div className="min-h-screen bg-background text-foreground dark font-mono flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-mono text-muted-foreground mb-4">Loading...</div>
-          <div className="text-sm text-muted-foreground">Initializing Fiberon monitoring system</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state if no zones
-  if (!zones || zones.length === 0) {
-    return (
-      <div className="min-h-screen bg-background text-foreground dark font-mono flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-mono text-destructive mb-4">No Zones Available</div>
-          <div className="text-sm text-muted-foreground">Database is empty. Please seed data.</div>
-          <div className="mt-4 text-xs font-mono text-muted-foreground">
-            Run: npx convex run seedData:seedHFTData
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Anomaly detection logic - uses merged data including live buffer
   useEffect(() => {
     if (!mergedData || mergedData.length === 0 || !baseline || !selectedZone) return;
@@ -379,6 +352,33 @@ export default function Dashboard() {
 
     setAnomalyEvents(detectedAnomalies);
   }, [mergedData, baseline, selectedZone]);
+
+  // Show loading state
+  if (zones === undefined || riskSummary === undefined) {
+    return (
+      <div className="min-h-screen bg-background text-foreground dark font-mono flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-mono text-muted-foreground mb-4">Loading...</div>
+          <div className="text-sm text-muted-foreground">Initializing Fiberon monitoring system</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no zones
+  if (!zones || zones.length === 0) {
+    return (
+      <div className="min-h-screen bg-background text-foreground dark font-mono flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-mono text-destructive mb-4">No Zones Available</div>
+          <div className="text-sm text-muted-foreground">Database is empty. Please seed data.</div>
+          <div className="mt-4 text-xs font-mono text-muted-foreground">
+            Run: npx convex run seedData:seedHFTData
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground dark font-mono">
