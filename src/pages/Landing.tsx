@@ -44,11 +44,11 @@ export default function Landing() {
             className="max-w-4xl"
           >
             <div className="brutal-border inline-block bg-primary px-4 py-2 mb-6">
-              <span className="font-black text-sm uppercase tracking-wide text-foreground">
+              <span className="font-black text-sm uppercase tracking-wide text-primary-foreground">
                 HFT INFRASTRUCTURE MONITORING
               </span>
             </div>
-            <h1 className="text-6xl md:text-7xl font-black uppercase mb-6 leading-tight">
+            <h1 className="text-6xl md:text-7xl font-black uppercase mb-6 leading-tight bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
               PREDICT LATENCY
               <br />
               BEFORE IT STRIKES
@@ -60,13 +60,13 @@ export default function Landing() {
             <div className="flex gap-4 flex-wrap">
               <button
                 onClick={() => navigate("/home")}
-                className="brutal-button bg-primary text-foreground px-8 py-4 text-lg"
+                className="brutal-button text-primary-foreground px-8 py-4 text-lg"
               >
                 VIEW ALL ZONES
               </button>
               <button
                 onClick={() => anomalyZones && anomalyZones.length > 0 && navigate(`/dashboard?zone=${anomalyZones[0].zoneId}`)}
-                className="brutal-button bg-destructive text-foreground px-8 py-4 text-lg"
+                className="px-8 py-4 text-lg rounded-lg font-semibold uppercase bg-destructive text-white border-2 border-destructive hover:bg-destructive/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
               >
                 INVESTIGATE ANOMALIES
               </button>
@@ -277,10 +277,10 @@ export default function Landing() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="brutal-card bg-background p-8">
-                <div className="brutal-border inline-block bg-primary text-foreground px-3 py-2 mb-4 font-black text-2xl">
+                <div className="brutal-border inline-block bg-primary text-primary-foreground px-3 py-2 mb-4 font-black text-2xl">
                   01
                 </div>
-                <h3 className="text-2xl font-black uppercase mb-4">
+                <h3 className="text-2xl font-black uppercase mb-4 text-primary">
                   BASELINE LEARNING
                 </h3>
                 <p className="text-muted-foreground font-mono">
@@ -289,10 +289,10 @@ export default function Landing() {
               </div>
 
               <div className="brutal-card bg-background p-8">
-                <div className="brutal-border inline-block bg-accent text-foreground px-3 py-2 mb-4 font-black text-2xl">
+                <div className="brutal-border inline-block bg-primary text-primary-foreground px-3 py-2 mb-4 font-black text-2xl">
                   02
                 </div>
-                <h3 className="text-2xl font-black uppercase mb-4">
+                <h3 className="text-2xl font-black uppercase mb-4 text-primary">
                   DEVIATION DETECTION
                 </h3>
                 <p className="text-muted-foreground font-mono">
@@ -301,10 +301,10 @@ export default function Landing() {
               </div>
 
               <div className="brutal-card bg-background p-8">
-                <div className="brutal-border inline-block bg-destructive text-foreground px-3 py-2 mb-4 font-black text-2xl">
+                <div className="brutal-border inline-block bg-destructive text-white px-3 py-2 mb-4 font-black text-2xl">
                   03
                 </div>
-                <h3 className="text-2xl font-black uppercase mb-4">
+                <h3 className="text-2xl font-black uppercase mb-4 text-destructive">
                   EARLY WARNING
                 </h3>
                 <p className="text-muted-foreground font-mono">
