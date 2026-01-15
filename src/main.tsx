@@ -25,7 +25,20 @@ function RouteLoading() {
   );
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+
+if (!convexUrl) {
+  console.error(
+    "❌ VITE_CONVEX_URL is not set! Your app will not work.\n\n" +
+    "Follow the DEPLOYMENT_GUIDE.md to:\n" +
+    "1. Deploy Convex backend: npx convex deploy --prod\n" +
+    "2. Copy the deployment URL\n" +
+    "3. Set VITE_CONVEX_URL environment variable on Vercel/Netlify\n" +
+    "4. Redeploy the frontend"
+  );
+}
+
+const convex = new ConvexReactClient(convexUrl || "http://localhost:3000");
 
 
 

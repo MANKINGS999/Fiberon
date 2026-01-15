@@ -1,0 +1,12 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_CONVEX_URL": {
+      "description": "Convex deployment URL from your Convex dashboard",
+      "required": true
+    }
+  },
+  "framework": "vite",
+  "nodeVersion": "20.x"
+}
