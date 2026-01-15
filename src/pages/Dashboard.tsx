@@ -1,6 +1,6 @@
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Circle } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -41,6 +41,13 @@ export default function Dashboard() {
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [anomalyEvents, setAnomalyEvents] = useState<AnomalyEvent[]>([]);
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyEvent | null>(null);
+  const [isLiveMode, setIsLiveMode] = useState(true);
+  const [liveDataBuffer, setLiveDataBuffer] = useState<Array<{
+    timestamp: number;
+    latency: number;
+    temperature: number;
+    vibration: number;
+  }>>([]);
 
   const riskSummary = useQuery(api.hftMonitoring.getRiskSummary);
   const zones = useQuery(api.hftMonitoring.getZones);
@@ -52,6 +59,18 @@ export default function Dashboard() {
     api.hftMonitoring.getBaseline,
     selectedZone ? { zoneId: selectedZone } : "skip"
   );
+  const addLatencyData = useMutation(api.hftMonitoring.addLatencyData);
+
+  // Live data generator - stores last values for smooth transitions
+  const lastValuesRef = useRef<{
+    latency: number;
+    temperature: number;
+    vibration: number;
+  }>({
+    latency: 0.285,
+    temperature: 68.5,
+    vibration: 0.012,
+  });
 
   useEffect(() => {
     const zoneParam = searchParams.get("zone");
@@ -61,6 +80,95 @@ export default function Dashboard() {
       setSelectedZone(zones[0].zoneId);
     }
   }, [zones, selectedZone, searchParams]);
+
+  // Initialize last values from latest data
+  useEffect(() => {
+    if (latencyData && latencyData.length > 0) {
+      const latest = latencyData[latencyData.length - 1];
+      lastValuesRef.current = {
+        latency: latest.latency,
+        temperature: latest.temperature,
+        vibration: latest.vibration,
+      };
+    }
+  }, [latencyData]);
+
+  // Live data generator - produces realistic streaming data
+  useEffect(() => {
+    if (!isLiveMode || !selectedZone || !baseline) return;
+
+    const generateNextValue = (current: number, baseValue: number, volatility: number) => {
+      // Random walk with mean reversion
+      const randomDelta = (Math.random() - 0.5) * volatility;
+      const meanReversion = (baseValue - current) * 0.05; // Pull towards baseline
+
+      // Occasionally introduce stress patterns
+      const stressChance = Math.random();
+      let stressFactor = 0;
+      if (stressChance > 0.95) {
+        // 5% chance of stress spike
+        stressFactor = volatility * (Math.random() * 3 + 1);
+      }
+
+      return current + randomDelta + meanReversion + stressFactor;
+    };
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const last = lastValuesRef.current;
+
+      // Generate new values with realistic variation
+      const newLatency = Math.max(0.001, generateNextValue(
+        last.latency,
+        baseline.avgLatency,
+        baseline.avgLatency * 0.02 // 2% volatility
+      ));
+
+      const newTemperature = Math.max(20, generateNextValue(
+        last.temperature,
+        baseline.avgTemperature,
+        0.5 // 0.5°C volatility
+      ));
+
+      const newVibration = Math.max(0, generateNextValue(
+        last.vibration,
+        baseline.avgVibration,
+        baseline.avgVibration * 0.05 // 5% volatility
+      ));
+
+      // Update ref for next iteration
+      lastValuesRef.current = {
+        latency: newLatency,
+        temperature: newTemperature,
+        vibration: newVibration,
+      };
+
+      // Add to local buffer for immediate UI update
+      setLiveDataBuffer(prev => {
+        const newBuffer = [...prev, {
+          timestamp: now,
+          latency: newLatency,
+          temperature: newTemperature,
+          vibration: newVibration,
+        }];
+        // Keep last 50 points in buffer
+        return newBuffer.slice(-50);
+      });
+
+      // Persist to database every 3rd data point to reduce write load
+      if (Math.random() > 0.66) {
+        addLatencyData({
+          zoneId: selectedZone,
+          latency: newLatency,
+          temperature: newTemperature,
+          vibration: newVibration,
+          isBaseline: false,
+        }).catch(err => console.error("Failed to add latency data:", err));
+      }
+    }, 1500); // Update every 1.5 seconds
+
+    return () => clearInterval(interval);
+  }, [isLiveMode, selectedZone, baseline, addLatencyData]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -89,7 +197,22 @@ export default function Dashboard() {
     }
   };
 
-  const chartData = latencyData?.map((d) => ({
+  // Merge database data with live buffer for seamless real-time updates
+  const mergedData = latencyData ? [...latencyData] : [];
+  if (isLiveMode && liveDataBuffer.length > 0 && selectedZone) {
+    // Only add buffer points that are newer than latest DB point
+    const latestDbTimestamp = mergedData.length > 0 ? mergedData[mergedData.length - 1].timestamp : 0;
+    const newBufferPoints = liveDataBuffer.filter(p => p.timestamp > latestDbTimestamp);
+    mergedData.push(...newBufferPoints.map(p => ({
+      ...p,
+      zoneId: selectedZone,
+      isBaseline: false,
+      _id: `live-${p.timestamp}` as any,
+      _creationTime: p.timestamp,
+    })));
+  }
+
+  const chartData = mergedData.map((d) => ({
     time: formatTime(d.timestamp),
     timestamp: d.timestamp,
     latency: d.latency,
@@ -97,14 +220,34 @@ export default function Dashboard() {
     vibration: d.vibration * 100,
   }));
 
-  // Calculate aggregate stats
+  // Calculate aggregate stats and trends
   const currentZoneData = riskSummary?.find(z => z.zoneId === selectedZone);
   const avgLatency = chartData ? chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10 : 0;
   const latencyVolatility = chartData ? Math.sqrt(chartData.slice(-10).reduce((acc, d) => acc + Math.pow(d.latency - avgLatency, 2), 0) / 10) : 0;
 
-  // Anomaly detection logic
+  // Calculate latency trend (comparing recent vs earlier data)
+  const latencyTrend = chartData && chartData.length >= 20 ? (() => {
+    const recent = chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10;
+    const earlier = chartData.slice(-20, -10).reduce((a, b) => a + b.latency, 0) / 10;
+    const change = ((recent - earlier) / earlier) * 100;
+    return { change, direction: change > 2 ? 'up' : change < -2 ? 'down' : 'stable' };
+  })() : { change: 0, direction: 'stable' as const };
+
+  // Calculate real-time risk score
+  const riskScore = baseline && avgLatency ? (() => {
+    const deviation = Math.abs(((avgLatency - baseline.avgLatency) / baseline.avgLatency) * 100);
+    const volatilityFactor = latencyVolatility / baseline.avgLatency * 100;
+    const trendFactor = latencyTrend.direction === 'up' ? Math.abs(latencyTrend.change) : 0;
+    const score = (deviation * 0.6) + (volatilityFactor * 0.2) + (trendFactor * 0.2);
+    return Math.min(100, Math.max(0, score));
+  })() : 0;
+
+  const riskStatus = riskScore < 8 ? 'Stable' : riskScore < 15 ? 'Stress Building' : 'High Risk';
+  const riskStatusColor = riskScore < 8 ? 'text-primary' : riskScore < 15 ? 'text-accent' : 'text-destructive';
+
+  // Anomaly detection logic - uses merged data including live buffer
   useEffect(() => {
-    if (!latencyData || !baseline || !selectedZone) return;
+    if (!mergedData || mergedData.length === 0 || !baseline || !selectedZone) return;
 
     type AnomalyBuilder = {
       startIdx: number;
@@ -144,7 +287,7 @@ export default function Dashboard() {
       }
     };
 
-    latencyData.forEach((point, idx) => {
+    mergedData.forEach((point, idx) => {
       const latencyDev = Math.abs(((point.latency - baseline.avgLatency) / baseline.avgLatency) * 100);
       const tempDev = Math.abs(((point.temperature - baseline.avgTemperature) / baseline.avgTemperature) * 100);
       const vibDev = Math.abs(((point.vibration - baseline.avgVibration) / baseline.avgVibration) * 100);
@@ -193,7 +336,7 @@ export default function Dashboard() {
     }
 
     setAnomalyEvents(detectedAnomalies);
-  }, [latencyData, baseline, selectedZone]);
+  }, [mergedData, baseline, selectedZone]);
 
   return (
     <div className="min-h-screen bg-background text-foreground dark font-mono">
@@ -216,13 +359,25 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Circle className="w-2 h-2 fill-primary text-primary animate-pulse" />
-                <span className="text-xs text-muted-foreground uppercase">Live</span>
-              </div>
+              <button
+                onClick={() => setIsLiveMode(!isLiveMode)}
+                className={`flex items-center gap-2 px-3 py-1 text-xs border transition-colors ${
+                  isLiveMode
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-card hover:border-primary'
+                }`}
+              >
+                <Circle className={`w-2 h-2 ${isLiveMode ? 'fill-primary text-primary animate-pulse' : 'fill-muted-foreground text-muted-foreground'}`} />
+                <span className="uppercase">{isLiveMode ? 'Live' : 'Paused'}</span>
+              </button>
               <div className="text-xs text-muted-foreground">
                 {new Date().toLocaleString()}
               </div>
+              {isLiveMode && liveDataBuffer.length > 0 && (
+                <div className="text-xs text-primary font-mono">
+                  +{liveDataBuffer.length} streaming
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -235,16 +390,38 @@ export default function Dashboard() {
           <div className="grid grid-cols-6 gap-4">
             <div className="col-span-2 border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground mb-1">Overall Risk Status</div>
-              <div className={`text-2xl font-bold ${currentZoneData ? getRiskColor(currentZoneData.riskLevel) : 'text-primary'}`}>
-                {currentZoneData?.riskLevel || "STABLE"}
+              <div className="flex items-baseline gap-3">
+                <div className={`text-2xl font-bold uppercase ${riskStatusColor}`}>
+                  {riskStatus}
+                </div>
+                <div className="text-sm font-mono text-muted-foreground">
+                  {riskScore.toFixed(1)}
+                </div>
               </div>
               {currentZoneData && (
                 <div className="text-xs text-muted-foreground mt-1">{currentZoneData.primaryCause}</div>
               )}
+              <div className="mt-2 h-1 bg-border rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    riskScore < 8 ? 'bg-primary' : riskScore < 15 ? 'bg-accent' : 'bg-destructive'
+                  }`}
+                  style={{ width: `${Math.min(100, riskScore * 6.67)}%` }}
+                />
+              </div>
             </div>
             <div className="border border-border bg-card p-3">
               <div className="text-xs text-muted-foreground mb-1">Avg Latency</div>
-              <div className="text-xl font-bold">{avgLatency.toFixed(3)}</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-xl font-bold">{avgLatency.toFixed(3)}</div>
+                {latencyTrend.direction !== 'stable' && (
+                  <div className={`text-xs font-mono ${
+                    latencyTrend.direction === 'up' ? 'text-destructive' : 'text-primary'
+                  }`}>
+                    {latencyTrend.direction === 'up' ? '↑' : '↓'}{Math.abs(latencyTrend.change).toFixed(1)}%
+                  </div>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">milliseconds</div>
             </div>
             <div className="border border-border bg-card p-3">
