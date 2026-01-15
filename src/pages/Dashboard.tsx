@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Circle } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -198,49 +198,64 @@ export default function Dashboard() {
   };
 
   // Merge database data with live buffer for seamless real-time updates
-  const mergedData = latencyData ? [...latencyData] : [];
-  if (isLiveMode && liveDataBuffer.length > 0 && selectedZone) {
-    // Only add buffer points that are newer than latest DB point
-    const latestDbTimestamp = mergedData.length > 0 ? mergedData[mergedData.length - 1].timestamp : 0;
-    const newBufferPoints = liveDataBuffer.filter(p => p.timestamp > latestDbTimestamp);
-    mergedData.push(...newBufferPoints.map(p => ({
-      ...p,
-      zoneId: selectedZone,
-      isBaseline: false,
-      _id: `live-${p.timestamp}` as any,
-      _creationTime: p.timestamp,
-    })));
-  }
+  const mergedData = useMemo(() => {
+    const merged = latencyData ? [...latencyData] : [];
+    if (isLiveMode && liveDataBuffer.length > 0 && selectedZone) {
+      // Only add buffer points that are newer than latest DB point
+      const latestDbTimestamp = merged.length > 0 ? merged[merged.length - 1].timestamp : 0;
+      const newBufferPoints = liveDataBuffer.filter(p => p.timestamp > latestDbTimestamp);
+      merged.push(...newBufferPoints.map(p => ({
+        ...p,
+        zoneId: selectedZone,
+        isBaseline: false,
+        _id: `live-${p.timestamp}` as any,
+        _creationTime: p.timestamp,
+      })));
+    }
+    return merged;
+  }, [latencyData, liveDataBuffer, isLiveMode, selectedZone]);
 
-  const chartData = mergedData.map((d) => ({
+  const chartData = useMemo(() => mergedData.map((d) => ({
     time: formatTime(d.timestamp),
     timestamp: d.timestamp,
     latency: d.latency,
     temperature: d.temperature,
     vibration: d.vibration * 100,
-  }));
+  })), [mergedData]);
 
-  // Calculate aggregate stats and trends
+  // Calculate aggregate stats and trends (memoized)
   const currentZoneData = riskSummary?.find(z => z.zoneId === selectedZone);
-  const avgLatency = chartData ? chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10 : 0;
-  const latencyVolatility = chartData ? Math.sqrt(chartData.slice(-10).reduce((acc, d) => acc + Math.pow(d.latency - avgLatency, 2), 0) / 10) : 0;
+
+  const avgLatency = useMemo(() =>
+    chartData.length > 0 ? chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10 : 0,
+    [chartData]
+  );
+
+  const latencyVolatility = useMemo(() =>
+    chartData.length > 0 ? Math.sqrt(chartData.slice(-10).reduce((acc, d) => acc + Math.pow(d.latency - avgLatency, 2), 0) / 10) : 0,
+    [chartData, avgLatency]
+  );
 
   // Calculate latency trend (comparing recent vs earlier data)
-  const latencyTrend = chartData && chartData.length >= 20 ? (() => {
-    const recent = chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10;
-    const earlier = chartData.slice(-20, -10).reduce((a, b) => a + b.latency, 0) / 10;
-    const change = ((recent - earlier) / earlier) * 100;
-    return { change, direction: change > 2 ? 'up' : change < -2 ? 'down' : 'stable' };
-  })() : { change: 0, direction: 'stable' as const };
+  const latencyTrend = useMemo(() => {
+    if (chartData.length >= 20) {
+      const recent = chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10;
+      const earlier = chartData.slice(-20, -10).reduce((a, b) => a + b.latency, 0) / 10;
+      const change = ((recent - earlier) / earlier) * 100;
+      return { change, direction: change > 2 ? 'up' : change < -2 ? 'down' : 'stable' as const };
+    }
+    return { change: 0, direction: 'stable' as const };
+  }, [chartData]);
 
   // Calculate real-time risk score
-  const riskScore = baseline && avgLatency ? (() => {
+  const riskScore = useMemo(() => {
+    if (!baseline || !avgLatency) return 0;
     const deviation = Math.abs(((avgLatency - baseline.avgLatency) / baseline.avgLatency) * 100);
     const volatilityFactor = latencyVolatility / baseline.avgLatency * 100;
     const trendFactor = latencyTrend.direction === 'up' ? Math.abs(latencyTrend.change) : 0;
     const score = (deviation * 0.6) + (volatilityFactor * 0.2) + (trendFactor * 0.2);
     return Math.min(100, Math.max(0, score));
-  })() : 0;
+  }, [baseline, avgLatency, latencyVolatility, latencyTrend]);
 
   const riskStatus = riskScore < 8 ? 'Stable' : riskScore < 15 ? 'Stress Building' : 'High Risk';
   const riskStatusColor = riskScore < 8 ? 'text-primary' : riskScore < 15 ? 'text-accent' : 'text-destructive';
