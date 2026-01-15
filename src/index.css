@@ -42,74 +42,74 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* CHANGE VALUES FOR THEME - BRIGHT CLEAN */
+/* CHANGE VALUES FOR THEME - HFT OPERATIONS CONSOLE */
 :root {
-  --radius: 0.75rem;
-  --background: oklch(0.99 0.005 120);
-  --foreground: oklch(0.15 0.015 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.015 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.015 260);
-  --primary: oklch(0.55 0.20 145);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.48 0.18 165);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.96 0.008 120);
-  --muted-foreground: oklch(0.45 0.01 260);
-  --accent: oklch(0.72 0.18 85);
-  --accent-foreground: oklch(0.15 0.015 260);
-  --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.88 0.01 120);
-  --input: oklch(0.97 0.005 120);
-  --ring: oklch(0.55 0.20 145);
-  --chart-1: oklch(0.55 0.20 145);
-  --chart-2: oklch(0.72 0.18 85);
-  --chart-3: oklch(0.55 0.22 25);
-  --chart-4: oklch(0.48 0.18 165);
-  --chart-5: oklch(0.60 0.18 200);
-  --sidebar: oklch(0.99 0.005 120);
-  --sidebar-foreground: oklch(0.15 0.015 260);
-  --sidebar-primary: oklch(0.55 0.20 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.96 0.008 120);
-  --sidebar-accent-foreground: oklch(0.15 0.015 260);
-  --sidebar-border: oklch(0.88 0.01 120);
-  --sidebar-ring: oklch(0.55 0.20 145);
+  --radius: 0.25rem;
+  --background: oklch(0.18 0.005 260);
+  --foreground: oklch(0.88 0.01 260);
+  --card: oklch(0.22 0.008 260);
+  --card-foreground: oklch(0.88 0.01 260);
+  --popover: oklch(0.22 0.008 260);
+  --popover-foreground: oklch(0.88 0.01 260);
+  --primary: oklch(0.62 0.15 150);
+  --primary-foreground: oklch(0.15 0.005 260);
+  --secondary: oklch(0.52 0.08 260);
+  --secondary-foreground: oklch(0.88 0.01 260);
+  --muted: oklch(0.25 0.008 260);
+  --muted-foreground: oklch(0.58 0.008 260);
+  --accent: oklch(0.70 0.16 85);
+  --accent-foreground: oklch(0.15 0.005 260);
+  --destructive: oklch(0.58 0.20 25);
+  --border: oklch(0.32 0.010 260);
+  --input: oklch(0.25 0.008 260);
+  --ring: oklch(0.62 0.15 150);
+  --chart-1: oklch(0.62 0.15 150);
+  --chart-2: oklch(0.70 0.16 85);
+  --chart-3: oklch(0.58 0.20 25);
+  --chart-4: oklch(0.52 0.08 260);
+  --chart-5: oklch(0.60 0.12 200);
+  --sidebar: oklch(0.20 0.006 260);
+  --sidebar-foreground: oklch(0.88 0.01 260);
+  --sidebar-primary: oklch(0.62 0.15 150);
+  --sidebar-primary-foreground: oklch(0.15 0.005 260);
+  --sidebar-accent: oklch(0.25 0.008 260);
+  --sidebar-accent-foreground: oklch(0.88 0.01 260);
+  --sidebar-border: oklch(0.32 0.010 260);
+  --sidebar-ring: oklch(0.62 0.15 150);
 }
 
 .dark {
-  --background: oklch(0.20 0.015 260);
-  --foreground: oklch(0.96 0.005 120);
-  --card: oklch(0.25 0.018 260);
-  --card-foreground: oklch(0.96 0.005 120);
-  --popover: oklch(0.25 0.018 260);
-  --popover-foreground: oklch(0.96 0.005 120);
-  --primary: oklch(0.65 0.22 145);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.58 0.20 165);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.30 0.018 260);
-  --muted-foreground: oklch(0.65 0.01 120);
-  --accent: oklch(0.78 0.20 85);
-  --accent-foreground: oklch(0.15 0.015 260);
-  --destructive: oklch(0.65 0.24 25);
-  --border: oklch(0.35 0.018 260);
-  --input: oklch(0.30 0.018 260);
-  --ring: oklch(0.65 0.22 145);
-  --chart-1: oklch(0.65 0.22 145);
-  --chart-2: oklch(0.78 0.20 85);
-  --chart-3: oklch(0.65 0.24 25);
-  --chart-4: oklch(0.58 0.20 165);
-  --chart-5: oklch(0.66 0.20 200);
-  --sidebar: oklch(0.23 0.015 260);
-  --sidebar-foreground: oklch(0.96 0.005 120);
-  --sidebar-primary: oklch(0.65 0.22 145);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.30 0.018 260);
-  --sidebar-accent-foreground: oklch(0.96 0.005 120);
-  --sidebar-border: oklch(0.35 0.018 260);
-  --sidebar-ring: oklch(0.65 0.22 145);
+  --background: oklch(0.18 0.005 260);
+  --foreground: oklch(0.88 0.01 260);
+  --card: oklch(0.22 0.008 260);
+  --card-foreground: oklch(0.88 0.01 260);
+  --popover: oklch(0.22 0.008 260);
+  --popover-foreground: oklch(0.88 0.01 260);
+  --primary: oklch(0.62 0.15 150);
+  --primary-foreground: oklch(0.15 0.005 260);
+  --secondary: oklch(0.52 0.08 260);
+  --secondary-foreground: oklch(0.88 0.01 260);
+  --muted: oklch(0.25 0.008 260);
+  --muted-foreground: oklch(0.58 0.008 260);
+  --accent: oklch(0.70 0.16 85);
+  --accent-foreground: oklch(0.15 0.005 260);
+  --destructive: oklch(0.58 0.20 25);
+  --border: oklch(0.32 0.010 260);
+  --input: oklch(0.25 0.008 260);
+  --ring: oklch(0.62 0.15 150);
+  --chart-1: oklch(0.62 0.15 150);
+  --chart-2: oklch(0.70 0.16 85);
+  --chart-3: oklch(0.58 0.20 25);
+  --chart-4: oklch(0.52 0.08 260);
+  --chart-5: oklch(0.60 0.12 200);
+  --sidebar: oklch(0.20 0.006 260);
+  --sidebar-foreground: oklch(0.88 0.01 260);
+  --sidebar-primary: oklch(0.62 0.15 150);
+  --sidebar-primary-foreground: oklch(0.15 0.005 260);
+  --sidebar-accent: oklch(0.25 0.008 260);
+  --sidebar-accent-foreground: oklch(0.88 0.01 260);
+  --sidebar-border: oklch(0.32 0.010 260);
+  --sidebar-ring: oklch(0.62 0.15 150);
 }
 
 @layer base {
@@ -126,76 +126,68 @@
   }
 }
 
-/* Modern Glassmorphism & Gradient Styles */
+/* HFT Operations Console - No-nonsense Styles */
 .brutal-border {
-  border: 1px solid oklch(0.90 0.01 250);
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--card);
 }
 
 .dark .brutal-border {
-  border: 1px solid oklch(0.25 0.018 250);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  background: var(--card);
 }
 
 .brutal-card {
-  border: 1px solid oklch(0.90 0.01 250);
-  border-radius: 1rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--card);
+  transition: border-color 0.15s ease;
 }
 
 .dark .brutal-card {
-  border: 1px solid oklch(0.25 0.018 250);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border);
+  background: var(--card);
 }
 
 .brutal-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
 }
 
 .dark .brutal-card:hover {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: oklch(0.35 0.020 250);
+  border-color: var(--primary);
 }
 
 .brutal-button {
-  border: 1px solid transparent;
-  border-radius: 0.625rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  font-size: 0.75rem;
+  background: var(--muted);
 }
 
 .dark .brutal-button {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: var(--muted);
 }
 
 .brutal-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  filter: brightness(1.1);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
 }
 
 .dark .brutal-button:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .brutal-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0.9;
 }
 
 .dark .brutal-button:active {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  opacity: 0.9;
 }
