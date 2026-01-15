@@ -367,9 +367,8 @@ export default function Dashboard() {
                 <ArrowLeft className="w-3 h-3" />
               </button>
               <div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider">Infrastructure Operations</div>
                 <h1 className="text-sm font-semibold uppercase tracking-wide">
-                  HFT Latency Monitor
+                  Fiberon Latency Monitor
                 </h1>
               </div>
             </div>
