@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/sonner";
-import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
@@ -67,9 +66,8 @@ function RouteSyncer() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <InstrumentationProvider>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
+    <ConvexAuthProvider client={convex}>
+      <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
@@ -84,5 +82,5 @@ createRoot(document.getElementById("root")!).render(
         <Toaster />
       </ConvexAuthProvider>
     </InstrumentationProvider>
-  </StrictMode>,
-);
+  </StStrictMode>,
+  
