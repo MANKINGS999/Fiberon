@@ -32,12 +32,51 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
+    // HFT Latency Monitoring Tables
+    zones: defineTable({
+      zoneId: v.string(),
+      name: v.string(),
+      location: v.string(),
+      status: v.union(v.literal("active"), v.literal("inactive")),
+    }).index("by_zoneId", ["zoneId"]),
 
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    latencyData: defineTable({
+      zoneId: v.string(),
+      timestamp: v.number(),
+      latency: v.number(),
+      temperature: v.number(),
+      vibration: v.number(),
+      isBaseline: v.boolean(),
+    })
+      .index("by_zoneId", ["zoneId"])
+      .index("by_timestamp", ["timestamp"])
+      .index("by_zoneId_and_timestamp", ["zoneId", "timestamp"]),
+
+    baselines: defineTable({
+      zoneId: v.string(),
+      avgLatency: v.number(),
+      avgTemperature: v.number(),
+      avgVibration: v.number(),
+      maxLatency: v.number(),
+      maxTemperature: v.number(),
+      maxVibration: v.number(),
+      sampleCount: v.number(),
+      updatedAt: v.number(),
+    }).index("by_zoneId", ["zoneId"]),
+
+    riskAlerts: defineTable({
+      zoneId: v.string(),
+      timestamp: v.number(),
+      riskLevel: v.union(v.literal("Low"), v.literal("Medium"), v.literal("High")),
+      primaryCause: v.string(),
+      latencyDeviation: v.number(),
+      temperatureDeviation: v.number(),
+      vibrationDeviation: v.number(),
+      acknowledged: v.boolean(),
+    })
+      .index("by_zoneId", ["zoneId"])
+      .index("by_timestamp", ["timestamp"])
+      .index("by_acknowledged", ["acknowledged"])
   },
   {
     schemaValidation: false,
