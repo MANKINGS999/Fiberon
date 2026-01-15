@@ -18,15 +18,35 @@ import {
   ReferenceArea,
 } from "recharts";
 
+interface AnomalyEvent {
+  id: string;
+  zoneId: string;
+  startTime: number;
+  endTime: number;
+  peakLatency: number;
+  peakTemperature: number;
+  peakVibration: number;
+  riskLevel: "Medium" | "High";
+  dataPoints: Array<{
+    timestamp: number;
+    latency: number;
+    temperature: number;
+    vibration: number;
+  }>;
+}
+
 export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [anomalyEvents, setAnomalyEvents] = useState<AnomalyEvent[]>([]);
+  const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyEvent | null>(null);
+
   const riskSummary = useQuery(api.hftMonitoring.getRiskSummary);
   const zones = useQuery(api.hftMonitoring.getZones);
   const latencyData = useQuery(
     api.hftMonitoring.getLatencyData,
-    selectedZone ? { zoneId: selectedZone, limit: 60 } : "skip"
+    selectedZone ? { zoneId: selectedZone, limit: 120 } : "skip"
   );
   const baseline = useQuery(
     api.hftMonitoring.getBaseline,
@@ -81,6 +101,99 @@ export default function Dashboard() {
   const currentZoneData = riskSummary?.find(z => z.zoneId === selectedZone);
   const avgLatency = chartData ? chartData.slice(-10).reduce((a, b) => a + b.latency, 0) / 10 : 0;
   const latencyVolatility = chartData ? Math.sqrt(chartData.slice(-10).reduce((acc, d) => acc + Math.pow(d.latency - avgLatency, 2), 0) / 10) : 0;
+
+  // Anomaly detection logic
+  useEffect(() => {
+    if (!latencyData || !baseline || !selectedZone) return;
+
+    type AnomalyBuilder = {
+      startIdx: number;
+      dataPoints: Array<{
+        timestamp: number;
+        latency: number;
+        temperature: number;
+        vibration: number;
+      }>;
+      peakLatency: number;
+      peakTemperature: number;
+      peakVibration: number;
+    };
+
+    const detectedAnomalies: AnomalyEvent[] = [];
+    let currentAnomaly: AnomalyBuilder | null = null;
+
+    const closeAnomaly = (anomalyBuilder: AnomalyBuilder) => {
+      if (anomalyBuilder.dataPoints.length >= 3) {
+        const maxDev = Math.max(
+          Math.abs(((anomalyBuilder.peakLatency - baseline.avgLatency) / baseline.avgLatency) * 100),
+          Math.abs(((anomalyBuilder.peakTemperature - baseline.avgTemperature) / baseline.avgTemperature) * 100),
+          Math.abs(((anomalyBuilder.peakVibration - baseline.avgVibration) / baseline.avgVibration) * 100)
+        );
+        const anomaly: AnomalyEvent = {
+          id: `${selectedZone}-${anomalyBuilder.dataPoints[0].timestamp}`,
+          zoneId: selectedZone,
+          startTime: anomalyBuilder.dataPoints[0].timestamp,
+          endTime: anomalyBuilder.dataPoints[anomalyBuilder.dataPoints.length - 1].timestamp,
+          peakLatency: anomalyBuilder.peakLatency,
+          peakTemperature: anomalyBuilder.peakTemperature,
+          peakVibration: anomalyBuilder.peakVibration,
+          riskLevel: maxDev > 15 ? "High" : "Medium",
+          dataPoints: anomalyBuilder.dataPoints,
+        };
+        detectedAnomalies.push(anomaly);
+      }
+    };
+
+    latencyData.forEach((point, idx) => {
+      const latencyDev = Math.abs(((point.latency - baseline.avgLatency) / baseline.avgLatency) * 100);
+      const tempDev = Math.abs(((point.temperature - baseline.avgTemperature) / baseline.avgTemperature) * 100);
+      const vibDev = Math.abs(((point.vibration - baseline.avgVibration) / baseline.avgVibration) * 100);
+      const maxDev = Math.max(latencyDev, tempDev, vibDev);
+
+      // Anomaly threshold: Medium = 8%, High = 15%
+      if (maxDev > 8) {
+        if (!currentAnomaly) {
+          // Start new anomaly period
+          currentAnomaly = {
+            startIdx: idx,
+            dataPoints: [{
+              timestamp: point.timestamp,
+              latency: point.latency,
+              temperature: point.temperature,
+              vibration: point.vibration,
+            }],
+            peakLatency: point.latency,
+            peakTemperature: point.temperature,
+            peakVibration: point.vibration,
+          };
+        } else {
+          // Continue existing anomaly
+          currentAnomaly.dataPoints.push({
+            timestamp: point.timestamp,
+            latency: point.latency,
+            temperature: point.temperature,
+            vibration: point.vibration,
+          });
+          currentAnomaly.peakLatency = Math.max(currentAnomaly.peakLatency, point.latency);
+          currentAnomaly.peakTemperature = Math.max(currentAnomaly.peakTemperature, point.temperature);
+          currentAnomaly.peakVibration = Math.max(currentAnomaly.peakVibration, point.vibration);
+        }
+      } else {
+        // End anomaly period if it exists
+        if (currentAnomaly) {
+          closeAnomaly(currentAnomaly);
+        }
+        currentAnomaly = null;
+      }
+    });
+
+    // Close out last anomaly if still active
+    if (currentAnomaly) {
+      closeAnomaly(currentAnomaly);
+    }
+
+    setAnomalyEvents(detectedAnomalies);
+  }, [latencyData, baseline, selectedZone]);
 
   return (
     <div className="min-h-screen bg-background text-foreground dark font-mono">
@@ -479,6 +592,312 @@ export default function Dashboard() {
                     }`}>
                       {currentZoneData.vibrationDeviation > 0 ? '+' : ''}{currentZoneData.vibrationDeviation.toFixed(2)}%
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Anomaly Events Timeline */}
+        {anomalyEvents.length > 0 && (
+          <section>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+              Detected Anomaly Events ({anomalyEvents.length})
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {anomalyEvents.map((anomaly) => (
+                <motion.div
+                  key={anomaly.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={() => setSelectedAnomaly(anomaly)}
+                  className={`cursor-pointer border p-4 transition-all hover:scale-[1.02] ${
+                    selectedAnomaly?.id === anomaly.id
+                      ? 'ring-2 ring-foreground/30'
+                      : ''
+                  } ${getRiskBg(anomaly.riskLevel)}`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`text-xs font-bold uppercase ${getRiskColor(anomaly.riskLevel)}`}>
+                      {anomaly.riskLevel} Risk Anomaly
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {anomaly.dataPoints.length} pts
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Start:</span>{" "}
+                      <span className="font-mono">{new Date(anomaly.startTime).toLocaleTimeString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">End:</span>{" "}
+                      <span className="font-mono">{new Date(anomaly.endTime).toLocaleTimeString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Duration:</span>{" "}
+                      <span className="font-mono">
+                        {Math.floor((anomaly.endTime - anomaly.startTime) / 60000)}m {Math.floor(((anomaly.endTime - anomaly.startTime) % 60000) / 1000)}s
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
+                      <div>
+                        <div className="text-muted-foreground text-[10px]">PEAK LAT</div>
+                        <div className="font-mono font-bold text-xs">{anomaly.peakLatency.toFixed(2)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-[10px]">PEAK TEMP</div>
+                        <div className="font-mono font-bold text-xs">{anomaly.peakTemperature.toFixed(1)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground text-[10px]">PEAK VIB</div>
+                        <div className="font-mono font-bold text-xs">{anomaly.peakVibration.toFixed(3)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Detailed Anomaly View */}
+        {selectedAnomaly && baseline && (
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">
+                Anomaly Event Details
+              </div>
+              <button
+                onClick={() => setSelectedAnomaly(null)}
+                className="px-3 py-1 text-xs border border-border hover:border-destructive transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            <div className={`border p-4 ${getRiskBg(selectedAnomaly.riskLevel)}`}>
+              <div className="mb-4">
+                <div className={`text-sm font-bold uppercase mb-2 ${getRiskColor(selectedAnomaly.riskLevel)}`}>
+                  {selectedAnomaly.riskLevel} Risk Event Analysis
+                </div>
+                <div className="grid grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Event ID:</span>{" "}
+                    <span className="font-mono">{selectedAnomaly.id.split('-').pop()?.slice(0, 8)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Started:</span>{" "}
+                    <span className="font-mono">{new Date(selectedAnomaly.startTime).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Ended:</span>{" "}
+                    <span className="font-mono">{new Date(selectedAnomaly.endTime).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Data Points:</span>{" "}
+                    <span className="font-mono font-bold">{selectedAnomaly.dataPoints.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Anomaly Timeline Charts */}
+              <div className="space-y-4">
+                {/* Latency During Anomaly */}
+                <div className="border border-border bg-background p-3">
+                  <div className="text-xs text-muted-foreground mb-2">Latency During Anomaly Event</div>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={selectedAnomaly.dataPoints.map(p => ({
+                      time: formatTime(p.timestamp),
+                      latency: p.latency,
+                      baseline: baseline.avgLatency,
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.32 0.010 260)" />
+                      <XAxis
+                        dataKey="time"
+                        stroke="oklch(0.58 0.008 260)"
+                        style={{ fontSize: "9px" }}
+                        tick={{ fill: "oklch(0.58 0.008 260)" }}
+                      />
+                      <YAxis
+                        stroke="oklch(0.58 0.008 260)"
+                        style={{ fontSize: "9px" }}
+                        tick={{ fill: "oklch(0.58 0.008 260)" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "oklch(0.22 0.008 260)",
+                          border: "1px solid oklch(0.32 0.010 260)",
+                          borderRadius: "2px",
+                          fontSize: "10px",
+                        }}
+                      />
+                      <ReferenceLine
+                        y={baseline.avgLatency}
+                        stroke="oklch(0.62 0.15 150)"
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        label={{
+                          value: "Baseline",
+                          position: "right",
+                          style: { fontSize: "10px", fill: "oklch(0.62 0.15 150)" },
+                        }}
+                      />
+                      <ReferenceLine
+                        y={baseline.avgLatency * 1.15}
+                        stroke="oklch(0.58 0.20 25)"
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        label={{
+                          value: "High Risk",
+                          position: "right",
+                          style: { fontSize: "10px", fill: "oklch(0.58 0.20 25)" },
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="latency"
+                        stroke="oklch(0.58 0.20 25)"
+                        strokeWidth={2}
+                        dot={{ fill: "oklch(0.58 0.20 25)", r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Peak: <span className="font-mono font-bold text-destructive">{selectedAnomaly.peakLatency.toFixed(3)} ms</span>
+                    {" "}(+{(((selectedAnomaly.peakLatency - baseline.avgLatency) / baseline.avgLatency) * 100).toFixed(1)}% from baseline)
+                  </div>
+                </div>
+
+                {/* Temperature and Vibration Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Temperature During Anomaly */}
+                  <div className="border border-border bg-background p-3">
+                    <div className="text-xs text-muted-foreground mb-2">Temperature During Event</div>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <LineChart data={selectedAnomaly.dataPoints.map(p => ({
+                        time: formatTime(p.timestamp),
+                        temperature: p.temperature,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.32 0.010 260)" />
+                        <XAxis
+                          dataKey="time"
+                          stroke="oklch(0.58 0.008 260)"
+                          style={{ fontSize: "9px" }}
+                          tick={{ fill: "oklch(0.58 0.008 260)" }}
+                        />
+                        <YAxis
+                          stroke="oklch(0.58 0.008 260)"
+                          style={{ fontSize: "9px" }}
+                          tick={{ fill: "oklch(0.58 0.008 260)" }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "oklch(0.22 0.008 260)",
+                            border: "1px solid oklch(0.32 0.010 260)",
+                            borderRadius: "2px",
+                            fontSize: "10px",
+                          }}
+                        />
+                        <ReferenceLine
+                          y={baseline.avgTemperature}
+                          stroke="oklch(0.58 0.008 260)"
+                          strokeWidth={1}
+                          strokeDasharray="3 3"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="temperature"
+                          stroke="oklch(0.70 0.16 85)"
+                          strokeWidth={2}
+                          dot={{ fill: "oklch(0.70 0.16 85)", r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Peak: <span className="font-mono font-bold text-accent">{selectedAnomaly.peakTemperature.toFixed(1)} °C</span>
+                      {" "}(+{(((selectedAnomaly.peakTemperature - baseline.avgTemperature) / baseline.avgTemperature) * 100).toFixed(1)}%)
+                    </div>
+                  </div>
+
+                  {/* Vibration During Anomaly */}
+                  <div className="border border-border bg-background p-3">
+                    <div className="text-xs text-muted-foreground mb-2">Vibration During Event</div>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <LineChart data={selectedAnomaly.dataPoints.map(p => ({
+                        time: formatTime(p.timestamp),
+                        vibration: p.vibration,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.32 0.010 260)" />
+                        <XAxis
+                          dataKey="time"
+                          stroke="oklch(0.58 0.008 260)"
+                          style={{ fontSize: "9px" }}
+                          tick={{ fill: "oklch(0.58 0.008 260)" }}
+                        />
+                        <YAxis
+                          stroke="oklch(0.58 0.008 260)"
+                          style={{ fontSize: "9px" }}
+                          tick={{ fill: "oklch(0.58 0.008 260)" }}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "oklch(0.22 0.008 260)",
+                            border: "1px solid oklch(0.32 0.010 260)",
+                            borderRadius: "2px",
+                            fontSize: "10px",
+                          }}
+                        />
+                        <ReferenceLine
+                          y={baseline.avgVibration}
+                          stroke="oklch(0.58 0.008 260)"
+                          strokeWidth={1}
+                          strokeDasharray="3 3"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="vibration"
+                          stroke="oklch(0.60 0.12 200)"
+                          strokeWidth={2}
+                          dot={{ fill: "oklch(0.60 0.12 200)", r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Peak: <span className="font-mono font-bold">{selectedAnomaly.peakVibration.toFixed(3)} g</span>
+                      {" "}(+{(((selectedAnomaly.peakVibration - baseline.avgVibration) / baseline.avgVibration) * 100).toFixed(1)}%)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Event Timeline Breakdown */}
+                <div className="border border-border bg-background p-3">
+                  <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Event Timeline Breakdown</div>
+                  <div className="space-y-1 text-xs max-h-48 overflow-y-auto">
+                    {selectedAnomaly.dataPoints.map((point, idx) => {
+                      const latencyDev = ((point.latency - baseline.avgLatency) / baseline.avgLatency) * 100;
+                      const tempDev = ((point.temperature - baseline.avgTemperature) / baseline.avgTemperature) * 100;
+                      const vibDev = ((point.vibration - baseline.avgVibration) / baseline.avgVibration) * 100;
+
+                      return (
+                        <div key={idx} className="grid grid-cols-5 gap-2 py-1 border-b border-border/50">
+                          <div className="font-mono text-muted-foreground">{formatTime(point.timestamp)}</div>
+                          <div className={`font-mono ${Math.abs(latencyDev) > 15 ? 'text-destructive font-bold' : Math.abs(latencyDev) > 8 ? 'text-accent font-bold' : ''}`}>
+                            {point.latency.toFixed(3)} ms {latencyDev > 0 ? '+' : ''}{latencyDev.toFixed(1)}%
+                          </div>
+                          <div className={`font-mono ${Math.abs(tempDev) > 15 ? 'text-destructive font-bold' : Math.abs(tempDev) > 8 ? 'text-accent font-bold' : ''}`}>
+                            {point.temperature.toFixed(1)} °C {tempDev > 0 ? '+' : ''}{tempDev.toFixed(1)}%
+                          </div>
+                          <div className={`font-mono ${Math.abs(vibDev) > 15 ? 'text-destructive font-bold' : Math.abs(vibDev) > 8 ? 'text-accent font-bold' : ''}`}>
+                            {point.vibration.toFixed(3)} g {vibDev > 0 ? '+' : ''}{vibDev.toFixed(1)}%
+                          </div>
+                          <div className="text-muted-foreground text-[10px]">
+                            {Math.abs(latencyDev) > 15 || Math.abs(tempDev) > 15 || Math.abs(vibDev) > 15 ? 'HIGH RISK' :
+                             Math.abs(latencyDev) > 8 || Math.abs(tempDev) > 8 || Math.abs(vibDev) > 8 ? 'MEDIUM' : 'STABLE'}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
