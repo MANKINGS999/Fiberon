@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Circle } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -171,10 +171,10 @@ export default function Dashboard() {
   }, [isLiveMode, selectedZone, baseline, addLatencyData]);
 
   // Helper function - must be defined before memoized values that use it
-  const formatTime = (timestamp: number) => {
+  const formatTime = useCallback((timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  };
+  }, []);
 
   // Merge database data with live buffer for seamless real-time updates
   const mergedData = useMemo(() => {
@@ -194,13 +194,15 @@ export default function Dashboard() {
     return merged;
   }, [latencyData, liveDataBuffer, isLiveMode, selectedZone]);
 
-  const chartData = useMemo(() => mergedData.map((d) => ({
-    time: formatTime(d.timestamp),
-    timestamp: d.timestamp,
-    latency: d.latency,
-    temperature: d.temperature,
-    vibration: d.vibration * 100,
-  })), [mergedData]);
+  const chartData = useMemo(() => {
+    return mergedData.map((d) => ({
+      time: formatTime(d.timestamp),
+      timestamp: d.timestamp,
+      latency: d.latency,
+      temperature: d.temperature,
+      vibration: d.vibration * 100,
+    }));
+  }, [mergedData, formatTime]);
 
   // Calculate aggregate stats and trends (memoized)
   const currentZoneData = riskSummary?.find(z => z.zoneId === selectedZone);
@@ -240,8 +242,16 @@ export default function Dashboard() {
   const riskStatusColor = riskScore < 8 ? 'text-primary' : riskScore < 15 ? 'text-accent' : 'text-destructive';
 
   // Anomaly detection logic - uses merged data including live buffer
+  // Throttle to only run every 5 seconds to prevent infinite loops
+  const lastAnomalyCheck = useRef<number>(0);
+
   useEffect(() => {
     if (!mergedData || mergedData.length === 0 || !baseline || !selectedZone) return;
+
+    // Throttle: only check every 5 seconds
+    const now = Date.now();
+    if (now - lastAnomalyCheck.current < 5000) return;
+    lastAnomalyCheck.current = now;
 
     type AnomalyBuilder = {
       startIdx: number;
