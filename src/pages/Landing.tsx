@@ -43,16 +43,17 @@ export default function Landing() {
             transition={{ delay: 0.2 }}
             className="max-w-4xl"
           >
-            <div className="brutal-border inline-block bg-primary px-4 py-2 mb-6">
-              <span className="font-black text-sm uppercase tracking-wide text-primary-foreground">
+            <div className="mb-8">
+              <h1 className="text-8xl md:text-9xl font-black uppercase mb-4 tracking-tight text-primary">
                 FIBERON
-              </span>
+              </h1>
+              <div className="h-2 w-48 bg-primary"></div>
             </div>
-            <h1 className="text-6xl md:text-7xl font-black uppercase mb-6 leading-tight bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+            <h2 className="text-5xl md:text-6xl font-black uppercase mb-6 leading-tight text-foreground">
               PREDICT LATENCY
               <br />
               BEFORE IT STRIKES
-            </h1>
+            </h2>
             <p className="text-xl text-muted-foreground font-mono mb-8 max-w-2xl">
               Real-time baseline analysis detects physical stress on fiber infrastructure
               before it impacts trading performance. Early warning = zero downtime.
